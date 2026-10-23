@@ -185,6 +185,9 @@ src/
   Setup.gs          "Contacts Sync" menu and the automatic triggers
 test/
   sync.test.js      Runs the sync against simulated Sheets and Contacts (Node.js)
+docs/
+  google-doc.md     Text of the submission Google Doc
+  demo-script.md    Checklist and script for the demo video
 ```
 
 ## Testing locally
