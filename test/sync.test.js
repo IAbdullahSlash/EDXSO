@@ -109,7 +109,7 @@ const ctx = vm.createContext({
     base64Encode: bytes => Buffer.from(bytes).toString('base64'),
   },
 });
-for (const f of ['Config.gs', 'SheetRepo.gs', 'ContactsRepo.gs', 'Sync.gs']) {
+for (const f of ['Config.gs', 'SheetRepo.gs', 'ContactsRepo.gs', 'Sync.gs', 'Setup.gs']) {
   vm.runInContext(fs.readFileSync(path.join(srcDir, f), 'utf8'), ctx, { filename: f });
 }
 const run = () => vm.runInContext('syncAll()', ctx);
@@ -173,4 +173,24 @@ run();
 assert(grid[grid.length - 1][3].startsWith('people/'), 'failed row retried');
 assert.strictEqual(live().length, 11);
 
-console.log('All 8 scenarios passed.');
+// 9. Setup installs exactly one edit trigger and one timer, even when re-run.
+vm.runInContext('setupSync(); setupSync()', ctx);
+assert.deepStrictEqual(triggers.map(t => t.handler).sort(), ['handleEdit', 'syncAll']);
+
+// 10. The edit trigger pushes data-row edits and ignores headers and other sheets.
+const edit = (sheetName, lastRow) => ({ range: { getSheet: () => ({ getName: () => sheetName }), getLastRow: () => lastRow } });
+ctx.e = edit('Other', 5);
+grid.push(['Edited In', '+91 4444444444', '', '', '', '']);
+vm.runInContext('handleEdit(e)', ctx);
+assert.strictEqual(grid[grid.length - 1][3], '', 'other sheets are ignored');
+ctx.e = edit('Contacts', 1);
+vm.runInContext('handleEdit(e)', ctx);
+assert.strictEqual(grid[grid.length - 1][3], '', 'header edits are ignored');
+ctx.e = edit('Contacts', grid.length);
+vm.runInContext('handleEdit(e)', ctx);
+assert(grid[grid.length - 1][3].startsWith('people/'), 'data-row edit is pushed');
+
+vm.runInContext('removeSyncTriggers()', ctx);
+assert.strictEqual(triggers.length, 0);
+
+console.log('All 10 scenarios passed.');
