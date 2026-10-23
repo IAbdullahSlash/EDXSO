@@ -155,3 +155,21 @@ nothing to sync takes about a second, so the every-minute timer fits inside it.
 - A row that fails to sync shows `Error: …` in `Last Synced` and is retried on
   the next run.
 
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| No **Contacts Sync** menu | Reload the spreadsheet and wait a few seconds. |
+| `ReferenceError: People is not defined` | The People API service isn't on. Check `appsscript.json` matches [`src/appsscript.json`](src/appsscript.json), or add it under **Services → + → People API**. |
+| A phone contact doesn't reach the sheet | Make sure it was saved to the Google account, not the phone or SIM. Google can take a couple of minutes to make new contacts visible; then use **Sync now**. |
+| `Error: …` in `Last Synced` | In Apps Script, open **Executions** to see the full error. The row is retried every minute. |
+| Phone number lost its `+` or leading zero | Column B must be formatted as plain text (**Format → Number → Plain text**). Setup does this for you. |
+
+## Limitations
+
+- The fastest Apps Script timer runs every minute, so changes made in Google
+  Contacts take up to a minute (plus Google's own propagation delay) to reach the
+  sheet. Changes in the sheet are pushed immediately.
+- Only name, the first phone number and the first email are synced.
+- Deleting a row in the sheet does not delete the contact, by design.
+
