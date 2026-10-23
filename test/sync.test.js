@@ -25,14 +25,31 @@ const sheet = {
   appendRow: vals => grid.push([...vals]),
   deleteRow: row => grid.splice(row - 1, 1),
   setFrozenRows() {}, hideColumns() {},
+  getName: () => 'Contacts',
+  getParent: () => spreadsheet,
 };
 let sheetExists = false;
+const spreadsheet = {
+  getSheetByName: () => (sheetExists ? sheet : null),
+  insertSheet: () => { sheetExists = true; return sheet; },
+  toast() {},
+};
 const SpreadsheetApp = {
-  getActiveSpreadsheet: () => ({
-    getSheetByName: () => (sheetExists ? sheet : null),
-    insertSheet: () => { sheetExists = true; return sheet; },
-  }),
+  getActiveSpreadsheet: () => spreadsheet,
   flush() {},
+};
+
+// ---- Fake ScriptApp triggers ----
+let triggers = [];
+const triggerBuilder = handler => {
+  const t = { handler, getHandlerFunction: () => handler };
+  const b = { forSpreadsheet: () => b, onEdit: () => b, timeBased: () => b, everyMinutes: () => b, create: () => triggers.push(t) };
+  return b;
+};
+const ScriptApp = {
+  newTrigger: triggerBuilder,
+  getProjectTriggers: () => [...triggers],
+  deleteTrigger: t => { triggers = triggers.filter(x => x !== t); },
 };
 
 // ---- Fake People API with sync tokens ----
@@ -83,7 +100,7 @@ function phoneDelete(id) { const p = people.get(id); p.deleted = true; p.changed
 
 const props = {};
 const ctx = vm.createContext({
-  SpreadsheetApp, People, console: { log() {}, warn() {}, error: console.error },
+  SpreadsheetApp, ScriptApp, People, console: { log() {}, warn() {}, error: console.error },
   PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] ?? null, setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => delete props[k] }) },
   LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
   Utilities: {
@@ -92,7 +109,7 @@ const ctx = vm.createContext({
     base64Encode: bytes => Buffer.from(bytes).toString('base64'),
   },
 });
-for (const f of ['Config.gs', 'SheetRepo.gs', 'ContactsRepo.gs', 'Sync.gs']) {
+for (const f of ['Config.gs', 'SheetRepo.gs', 'ContactsRepo.gs', 'Sync.gs', 'Setup.gs']) {
   vm.runInContext(fs.readFileSync(path.join(srcDir, f), 'utf8'), ctx, { filename: f });
 }
 const run = () => vm.runInContext('syncAll()', ctx);
@@ -156,4 +173,24 @@ run();
 assert(grid[grid.length - 1][3].startsWith('people/'), 'failed row retried');
 assert.strictEqual(live().length, 11);
 
-console.log('All 8 scenarios passed.');
+// 9. Setup installs exactly one edit trigger and one timer, even when re-run.
+vm.runInContext('setupSync(); setupSync()', ctx);
+assert.deepStrictEqual(triggers.map(t => t.handler).sort(), ['handleEdit', 'syncAll']);
+
+// 10. The edit trigger pushes data-row edits and ignores headers and other sheets.
+const edit = (sheetName, lastRow) => ({ range: { getSheet: () => ({ getName: () => sheetName }), getLastRow: () => lastRow } });
+ctx.e = edit('Other', 5);
+grid.push(['Edited In', '+91 4444444444', '', '', '', '']);
+vm.runInContext('handleEdit(e)', ctx);
+assert.strictEqual(grid[grid.length - 1][3], '', 'other sheets are ignored');
+ctx.e = edit('Contacts', 1);
+vm.runInContext('handleEdit(e)', ctx);
+assert.strictEqual(grid[grid.length - 1][3], '', 'header edits are ignored');
+ctx.e = edit('Contacts', grid.length);
+vm.runInContext('handleEdit(e)', ctx);
+assert(grid[grid.length - 1][3].startsWith('people/'), 'data-row edit is pushed');
+
+vm.runInContext('removeSyncTriggers()', ctx);
+assert.strictEqual(triggers.length, 0);
+
+console.log('All 10 scenarios passed.');

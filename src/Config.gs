@@ -14,6 +14,10 @@ const CONFIG = {
 
   // How long a run waits for another run to finish before giving up.
   LOCK_TIMEOUT_MS: 30 * 1000,
+
+  // How often the time-driven trigger pulls changes from Google Contacts.
+  // Allowed values: 1, 5, 10, 15 or 30.
+  SYNC_INTERVAL_MINUTES: 1,
 };
 
 /** 1-based column numbers in the Contacts sheet. */

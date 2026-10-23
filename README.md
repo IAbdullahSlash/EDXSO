@@ -30,9 +30,26 @@ src/
   SheetRepo.gs      Reading and writing rows in the Contacts sheet
   ContactsRepo.gs   Creating, updating and listing contacts (People API)
   Sync.gs           Two-way sync logic and locking
+  Setup.gs          "Contacts Sync" menu and the automatic triggers
 test/
   sync.test.js      Runs the sync against simulated Sheets and Contacts (Node.js)
 ```
+
+## Running automatically
+
+Choosing **Contacts Sync → Set up sync** in the spreadsheet installs two triggers:
+
+- **On edit** (`handleEdit`): pushes a changed row to Google Contacts as soon as
+  you edit it.
+- **Every minute** (`syncAll`): pulls changes from Google Contacts and retries
+  any row that failed. Change `SYNC_INTERVAL_MINUTES` in `Config.gs` to run it
+  less often.
+
+Running setup again replaces the old triggers instead of adding duplicates.
+**Contacts Sync → Stop automatic sync** removes them.
+
+A free Google account gets 90 minutes of trigger run time per day. A run with
+nothing to sync takes about a second, so the every-minute timer fits inside it.
 
 ## Sync rules
 
@@ -56,8 +73,9 @@ test/
 node test/sync.test.js
 ```
 
-The test runs eight scenarios against in-memory fakes: the initial 10-contact
+The test runs ten scenarios against in-memory fakes: the initial 10-contact
 push, no feedback loops, a contact added on the phone (10 → 11), edits on each
-side, deletion, conflicting edits, and retrying a failed row.
+side, deletion, conflicting edits, retrying a failed row, trigger setup, and
+the on-edit handler.
 
 Setup instructions and full documentation are added as the project is built.
