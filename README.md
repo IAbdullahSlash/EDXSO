@@ -123,3 +123,35 @@ The 10 contacts then appear in the phone's Contacts app.
 - **Add or edit a row in the sheet:** it is pushed to Google Contacts at once.
 - **Sync immediately:** choose **Contacts Sync → Sync now**.
 
+## Running automatically
+
+**Set up sync** installs two triggers:
+
+- **On edit** (`handleEdit`): pushes a changed row to Google Contacts as soon as
+  you edit it.
+- **Every minute** (`syncAll`): pulls changes from Google Contacts and retries
+  any row that failed. Change `SYNC_INTERVAL_MINUTES` in `Config.gs` to run it
+  less often.
+
+Running setup again replaces the old triggers instead of adding duplicates.
+**Contacts Sync → Stop automatic sync** removes them.
+
+A free Google account gets 90 minutes of trigger run time per day. A run with
+nothing to sync takes about a second, so the every-minute timer fits inside it.
+
+## Sync rules
+
+- A row is pushed when it has no `Contact ID` yet, or its name/phone/email no
+  longer matches the hidden `Sync Hash` from the last sync.
+- Contacts changed since the last run (People API sync token) are written into
+  their row, or appended as new rows.
+- Every write stores the hash of what was written, so changes don't bounce back
+  and forth between the two sides.
+- If a row and its contact both changed between runs, the sheet wins.
+- A contact deleted in Google Contacts removes its row. Deleting a row does not
+  delete the contact, so an accidental delete in the sheet can't wipe contacts.
+- Only the first phone number and email are synced; extra ones on a contact are
+  left untouched.
+- A row that fails to sync shows `Error: …` in `Last Synced` and is retried on
+  the next run.
+
