@@ -173,3 +173,27 @@ nothing to sync takes about a second, so the every-minute timer fits inside it.
 - Only name, the first phone number and the first email are synced.
 - Deleting a row in the sheet does not delete the contact, by design.
 
+## Project layout
+
+```
+src/
+  appsscript.json   Manifest: People API service, OAuth scopes
+  Config.gs         Sheet name, columns, People API fields, sync interval
+  SheetRepo.gs      Reading and writing rows in the Contacts sheet
+  ContactsRepo.gs   Creating, updating and listing contacts (People API)
+  Sync.gs           Two-way sync logic and locking
+  Setup.gs          "Contacts Sync" menu and the automatic triggers
+test/
+  sync.test.js      Runs the sync against simulated Sheets and Contacts (Node.js)
+```
+
+## Testing locally
+
+```bash
+node test/sync.test.js
+```
+
+The test needs only Node.js. It runs ten scenarios against in-memory fakes of
+Sheets and the People API: the initial 10-contact push, no feedback loops, a
+contact added on the phone (10 → 11), edits on each side, deletion, conflicting
+edits, retrying a failed row, trigger setup, and the on-edit handler.
