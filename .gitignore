@@ -1,0 +1,12 @@
+# Assignment brief (kept locally, not part of the solution)
+*.pdf
+
+# clasp local config (contains the script ID of your own copy)
+.clasp.json
+.clasprc.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+node_modules/
