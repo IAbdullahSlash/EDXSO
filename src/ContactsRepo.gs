@@ -26,6 +26,53 @@ function updateContact_(resourceName, contact) {
   });
 }
 
+/**
+ * Lists contacts changed since the last call, using the stored sync token.
+ * Without a token (first run, or the token expired after 7 days) it lists
+ * every contact instead.
+ *
+ * Returns { contacts, fullSync, nextSyncToken }. The caller saves
+ * nextSyncToken with saveSyncToken_() once it has applied the changes, so a
+ * failed run is simply repeated next time.
+ */
+function listContactChanges_() {
+  const token = PropertiesService.getScriptProperties().getProperty(CONFIG.SYNC_TOKEN_KEY);
+  if (!token) return fetchConnections_(null);
+
+  try {
+    return fetchConnections_(token);
+  } catch (e) {
+    if (!/sync token|EXPIRED/i.test(e.message)) throw e;
+    console.warn('Sync token expired; running a full sync.');
+    return fetchConnections_(null);
+  }
+}
+
+function saveSyncToken_(token) {
+  if (token) PropertiesService.getScriptProperties().setProperty(CONFIG.SYNC_TOKEN_KEY, token);
+}
+
+function fetchConnections_(syncToken) {
+  const contacts = [];
+  let pageToken = null;
+  let response;
+  do {
+    const options = {
+      personFields: CONFIG.PERSON_FIELDS,
+      pageSize: 1000,
+      requestSyncToken: true,
+    };
+    if (syncToken) options.syncToken = syncToken;
+    if (pageToken) options.pageToken = pageToken;
+
+    response = People.People.Connections.list('people/me', options);
+    (response.connections || []).forEach(p => contacts.push(fromPerson_(p)));
+    pageToken = response.nextPageToken;
+  } while (pageToken);
+
+  return { contacts, fullSync: !syncToken, nextSyncToken: response.nextSyncToken };
+}
+
 /** Converts a People API person into a contact record. */
 function fromPerson_(person) {
   const name = first_(person.names);
