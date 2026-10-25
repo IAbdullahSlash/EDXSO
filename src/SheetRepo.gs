@@ -44,9 +44,15 @@ function writeRow_(sheet, row, contact) {
   sheet.getRange(row, 1, 1, CONFIG.HEADERS.length).setValues([rowValues_(contact)]);
 }
 
-/** Adds a contact as a new row at the bottom of the sheet. */
+/**
+ * Adds a contact in the row after the last one with a name, phone, email or ID.
+ * (sheet.appendRow() would go below rows that were cleared but still hold a
+ * value in the hidden Sync Hash column.)
+ */
 function appendRow_(sheet, contact) {
-  sheet.appendRow(rowValues_(contact));
+  const used = readRows_(sheet).filter(r => r.name || r.phone || r.email || r.id);
+  const row = used.length ? used[used.length - 1].row + 1 : 2;
+  writeRow_(sheet, row, contact);
 }
 
 /** Records a successful push: the contact ID, the time and the new hash. */

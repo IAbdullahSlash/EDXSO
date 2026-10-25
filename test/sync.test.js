@@ -208,4 +208,12 @@ const writes = clock;
 run();
 assert.strictEqual(clock, writes, 'restored row is not pushed again');
 
-console.log('All 11 scenarios passed.');
+// 12. A phone contact goes right below the last contact, even when cleared
+//     rows further down still hold a value in the hidden hash column.
+const lastUsed = grid.length;
+for (let i = 0; i < 5; i++) grid.push(['', '', '', '', '', 'leftover-hash']);
+const lateId = phoneAdd('Late Phone Friend', '+91 3333333333');
+run();
+assert.deepStrictEqual(grid[lastUsed].slice(0, 4), ['Late Phone Friend', '+91 3333333333', '', lateId]);
+
+console.log('All 12 scenarios passed.');
