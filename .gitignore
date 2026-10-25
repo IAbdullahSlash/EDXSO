@@ -1,6 +1,9 @@
 # Assignment brief (kept locally, not part of the solution)
 *.pdf
 
+# Demo recordings (uploaded separately, too large for the repo)
+video/
+
 # clasp local config (contains the script ID of your own copy)
 .clasp.json
 .clasprc.json
