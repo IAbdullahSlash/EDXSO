@@ -26,6 +26,11 @@ function updateContact_(resourceName, contact) {
   });
 }
 
+/** Fetches one contact as a contact record. */
+function getContact_(resourceName) {
+  return fromPerson_(People.People.get(resourceName, { personFields: CONFIG.PERSON_FIELDS }));
+}
+
 /**
  * Lists contacts changed since the last call, using the stored sync token.
  * Without a token (first run, or the token expired after 7 days) it lists

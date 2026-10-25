@@ -11,10 +11,12 @@ const srcDir = process.argv[2] || path.join(__dirname, '..', 'src');
 // ---- Fake sheet ----
 const grid = []; // array of row arrays (row 1 = index 0)
 let maxRows = 1000;
+// Like Sheets: a leading apostrophe forces text, and "+..." or "=..." is parsed as a formula.
+const parse = v => (typeof v !== 'string' ? v : v[0] === "'" ? v.slice(1) : /^[+=]/.test(v) ? '#ERROR!' : v);
 const range = (r, c, nr = 1, nc = 1) => ({
   getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => (grid[r - 1 + i] || [])[c - 1 + j] ?? '')),
-  setValues(vals) { vals.forEach((row, i) => row.forEach((v, j) => { (grid[r - 1 + i] ||= [])[c - 1 + j] = v; })); return this; },
-  setValue(v) { (grid[r - 1] ||= [])[c - 1] = v; return this; },
+  setValues(vals) { vals.forEach((row, i) => row.forEach((v, j) => { (grid[r - 1 + i] ||= [])[c - 1 + j] = parse(v); })); return this; },
+  setValue(v) { (grid[r - 1] ||= [])[c - 1] = parse(v); return this; },
   setFontWeight() { return this; },
   setNumberFormat() { return this; },
 });
@@ -22,7 +24,7 @@ const sheet = {
   getRange: range,
   getLastRow: () => grid.length,
   getMaxRows: () => maxRows,
-  appendRow: vals => grid.push([...vals]),
+  appendRow: vals => grid.push(Array.from(vals, parse)),
   deleteRow: row => grid.splice(row - 1, 1),
   setFrozenRows() {}, hideColumns() {},
   getName: () => 'Contacts',
@@ -193,4 +195,17 @@ assert(grid[grid.length - 1][3].startsWith('people/'), 'data-row edit is pushed'
 vm.runInContext('removeSyncTriggers()', ctx);
 assert.strictEqual(triggers.length, 0);
 
-console.log('All 10 scenarios passed.');
+// 11. Values starting with "+" stay text, and a cell showing #ERROR! is
+//     restored from its contact instead of being pushed to Contacts.
+assert(grid.slice(1).every(r => !String(r[1]).startsWith('#') && !String(r[5]).startsWith('#')), 'no formula errors written');
+const id3 = grid[3][3];
+const phone3 = people.get(id3).person.phoneNumbers[0].value;
+grid[3][1] = '#ERROR!';
+run();
+assert.strictEqual(people.get(id3).person.phoneNumbers[0].value, phone3, 'error value is not pushed');
+assert.strictEqual(grid[3][1], phone3, 'row is restored from the contact');
+const writes = clock;
+run();
+assert.strictEqual(clock, writes, 'restored row is not pushed again');
+
+console.log('All 11 scenarios passed.');

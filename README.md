@@ -196,7 +196,8 @@ docs/
 node test/sync.test.js
 ```
 
-The test needs only Node.js. It runs ten scenarios against in-memory fakes of
+The test needs only Node.js. It runs eleven scenarios against in-memory fakes of
 Sheets and the People API: the initial 10-contact push, no feedback loops, a
 contact added on the phone (10 → 11), edits on each side, deletion, conflicting
-edits, retrying a failed row, trigger setup, and the on-edit handler.
+edits, retrying a failed row, trigger setup, the on-edit handler, and phone
+numbers starting with `+`.

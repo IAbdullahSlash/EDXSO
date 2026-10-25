@@ -51,7 +51,7 @@ function appendRow_(sheet, contact) {
 
 /** Records a successful push: the contact ID, the time and the new hash. */
 function markRowSynced_(sheet, row, id, hash) {
-  sheet.getRange(row, COL.ID, 1, 3).setValues([[id, new Date(), hash]]);
+  sheet.getRange(row, COL.ID, 1, 3).setValues([[id, new Date(), asText_(hash)]]);
 }
 
 /** Shows a sync error in the row. The hash is left alone so the row is retried. */
@@ -66,8 +66,25 @@ function hashOf_(record) {
   return Utilities.base64Encode(bytes);
 }
 
+/** True if a synced cell shows a Sheets error such as #ERROR! instead of a value. */
+function hasCellError_(record) {
+  return [record.name, record.phone, record.email].some(v => /^#(ERROR!|N\/A|REF!|NAME\?|VALUE!|DIV\/0!|NUM!|NULL!)$/.test(v));
+}
+
 function rowValues_(contact) {
-  return [contact.name, contact.phone, contact.email, contact.id, new Date(), hashOf_(contact)];
+  return [
+    asText_(contact.name), asText_(contact.phone), asText_(contact.email),
+    contact.id, new Date(), asText_(hashOf_(contact)),
+  ];
+}
+
+/**
+ * Makes Sheets store a value as typed. Without the leading apostrophe,
+ * "+91 98765 43210" (or a hash starting with "+") is parsed as a formula and
+ * shows #ERROR!. The apostrophe is hidden and not returned by getValues().
+ */
+function asText_(value) {
+  return value ? "'" + value : value;
 }
 
 function clean_(value) {

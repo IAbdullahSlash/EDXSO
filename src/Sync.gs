@@ -33,10 +33,22 @@ function syncContactsToSheet() {
 
 function pushSheetToContacts_() {
   const sheet = getContactsSheet_();
-  const stats = { created: 0, updated: 0, failed: 0 };
+  const stats = { created: 0, updated: 0, repaired: 0, failed: 0 };
 
   readRows_(sheet).forEach(r => {
     if (!r.name && !r.phone) return; // blank or half-typed row
+    if (hasCellError_(r)) {
+      // Never push "#ERROR!" to Contacts. Restore the row from its contact instead.
+      try {
+        if (!r.id) throw new Error('a cell shows a formula error; retype it');
+        writeRow_(sheet, r.row, getContact_(r.id));
+        stats.repaired++;
+      } catch (e) {
+        markRowError_(sheet, r.row, e);
+        stats.failed++;
+      }
+      return;
+    }
     const hash = hashOf_(r);
     if (r.id && hash === r.hash) return; // unchanged since last sync
 

@@ -73,7 +73,7 @@ not copied back as a duplicate, and nothing bounces back and forth.
 | `Setup.gs` | The "Contacts Sync" menu and the triggers |
 
 The repository also has an automated test (`test/sync.test.js`) that runs the
-sync against simulated Sheets and Contacts in ten scenarios, including the
+sync against simulated Sheets and Contacts in eleven scenarios, including the
 10 → 11 case, edits on both sides, deletion and failed rows.
 
 ## 3. Setup instructions
